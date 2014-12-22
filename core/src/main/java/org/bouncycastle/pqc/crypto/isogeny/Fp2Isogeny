@@ -1,0 +1,252 @@
+package org.bouncycastle.pqc.crypto.isogeny;
+
+
+/**
+ * Implementation of 2-, 3- and 4-isogenies closely following the C code
+ * by Luca De Feo. (https://github.com/defeo/ss-isogeny-software/)
+ */
+public abstract class Fp2Isogeny 
+{
+  public abstract Fp2Point apply(Fp2Point P);
+
+  /**
+   * Isomorphisms of Montgomery curves.
+   */
+  public static class isom extends Fp2Isogeny 
+  {
+	  public Fp2Field u;
+	  public Fp2Field r;
+	  public Fp2Curve isocurve;
+	
+	  /**
+	   * Compute an isomorphism of the Montgomery
+	   * curve sending P to the point at infinity.
+	   */
+	  public isom(Fp2Curve curve, Fp2Point P)
+	  {
+		  Fp2Point P2;
+		  Fp2Field x, z, P2x, a2, iA, iB;
+		  
+		  x	  = P.getX();
+		  z   = P.getZ();
+		  P2  = P.twice();
+		  P2x = P2.getX().divide(P2.getZ());						// P2x = x([2]P) / z([2]P)
+		  r   = P2x.negate();										// r = -P2x
+		  
+		  a2 = P2x.multiply(Fp2Field.SCALAR_THREE).add(curve.getA());
+		  															// a2 = [3]P2x + A
+		  u  = z.divide(x.subtract(z.multiply(P2x)));				// u = z / (x - z P2x)
+		  iA = a2.multiply(u);										// iA = a2 u
+		  iB = curve.getB().multiply(u);							// iB = B u
+		  
+		  isocurve = new Fp2Curve(iA, iB);	  
+	  }
+	  
+	  /**
+	   * Apply an isomorphism of Montgomery curves.
+	   */
+	  public Fp2Point apply(Fp2Point P)
+	  {
+		  Fp2Field Xout,Yout,Zout;
+		  
+		  Zout = P.getZ();
+		  
+		  if (P.getY()!=null)
+			  Yout = P.getY().multiply(u);							// Y = y u
+		  else 
+			  Yout = null;
+		  
+		  Xout = P.getX().add(r.multiply(P.getZ())).multiply(u);	// X = (x + r z) u
+
+		  return new Fp2Point(isocurve, Xout, Yout, Zout);
+		  
+	  }
+	  
+  }  
+  
+  /**
+   * 2-isogenies of Montgomery curves.
+   */
+  public static class iso2 extends Fp2Isogeny 
+  {
+	  Fp2Field isoA;
+	  Fp2Curve isocurve;
+	  
+	  /**
+	   * Compute a 2-isogeny of the Montgomery curve
+	   * sending P to (1,...).
+	   */
+	  public iso2(Fp2Curve curve,Fp2Point P)
+	  {
+		  Fp2Field x, z, xmz2, iB, iA;
+		  
+		  x    = P.getX();
+		  z    = P.getZ();
+		  xmz2 = x.subtract(z).square();
+		  isoA = x.multiply(z).divide(xmz2);						// isoA = x z / (x-z)^2
+		  
+ 		  iB   = curve.getB().multiply(isoA);						// iB = B isoA
+		  iA   = curve.getA().add(Fp2Field.SCALAR_SIX).multiply(isoA);	
+		  															// iA = (A+6) isoA
+		  isocurve = new Fp2Curve(iA, iB);
+	  }
+	  
+	  /**
+	   * Apply a 2-isogeny of Montgomery curves.
+	   */
+	  public Fp2Point apply(Fp2Point P)
+	  {
+		  Fp2Field x, y, z, retX, retY = null, retZ, xmz2;
+		  
+		  x	   = P.getX();
+		  y    = P.getY();
+		  z    = P.getZ();
+		  xmz2 = x.subtract(z).square();
+		  retX = xmz2;
+		  
+		  if (y!=null)
+		  {
+			  Fp2Field X2;
+			  
+			  retX = x.multiply(xmz2);								// ... retX = x isoA (x - z)^2
+			  X2   = x.square();									// X2 = x^2
+			  retY = isoA.multiply(y.multiply(X2.subtract(z.square())));
+			  														// retY = isoA y (x^2 - z^2)
+			  retZ = z.multiply(X2);								// retZ = z x^2
+		  }
+		  else
+			  retZ = z.multiply(x);									// retZ = z x
+		  
+		  retX = retX.multiply(isoA);								// retX = isoA (x - z)^2
+	 
+		  return new Fp2Point(isocurve, retX, retY, retZ);
+	  }
+	  
+  }
+  
+  /**
+   * 3-isogenies of Montgomery curves.
+   */
+  public static class iso3 extends Fp2Isogeny 
+  {
+	  Fp2Field isop;
+	  Fp2Field isop2;
+	  Fp2Curve isocurve;
+	  
+	 
+	  /**
+	   * Compute a 3-isogeny of the Montgomery curve.
+	   */
+	  public iso3(Fp2Curve curve, Fp2Point P)
+	  {
+		  Fp2Field AmSIXp, iA, iB;
+		  
+		  isop  = P.getX().divide(P.getZ());						// p
+		  isop2 = isop.square();									// p^2
+		  
+ 		  AmSIXp = curve.getA().subtract(isop.multiply(Fp2Field.SCALAR_SIX));			
+ 		  															// (-6p + A)
+		  iA     = AmSIXp.multiply(isop).add(Fp2Field.SCALAR_SIX).multiply(isop); 	
+		  															// iA = ((-6p + A)p + 6)p
+		  iB     = curve.getB().multiply(isop2);					// iB = B p^2
+		  
+		  isocurve = new Fp2Curve(iA, iB);
+	  }
+	  
+	  /**
+	   * Apply a 3-isogeny of Montgomery curves.
+	   */
+	  public Fp2Point apply(Fp2Point P)
+	  {
+		  Fp2Field x, y, z, Xout, Yout = null, Zout, h, rh;
+		  
+		  x    = P.getX();
+		  y    = P.getY();
+		  z    = P.getZ();
+		  h    = x.subtract(isop.multiply(z));						// h = x - p z
+		  rh   = x.multiply(isop).subtract(z);						// rh = x p - z
+		  Xout = x.multiply(rh.square());							// Xout = x (x p - z)^2
+ 		  
+		  if (y!=null)
+		  {
+			  Fp2Field temp;
+			  Xout = Xout.multiply(h);								// Xout *= h
+			  temp = x.multiply(z).multiply(Fp2Field.ONE.subtract(isop2));
+			  temp = temp.add(temp);
+			  temp = rh.multiply(rh.multiply(h).add(temp)); 		// (rh (rh h + 2xz(1-p^2)))
+			  Yout = y.multiply(temp);								// Y = y (rh (rh h + 2xz(1-p^2)))
+			  Zout = h.square().multiply(h).multiply(z);			// Z = h^2 h z
+		  }
+		  else
+			  Zout = h.square().multiply(z);						// Z = h^2 z
+		  
+		  return new Fp2Point(isocurve, Xout, Yout, Zout);
+	  }
+	  
+  }
+  
+  /**
+   * 4-isogenies of Montgomery curves.
+   */
+  public static class iso4 extends Fp2Isogeny 
+  {  
+	  Fp2Field isoAp2;
+	  Fp2Curve isocurve;
+
+	  /**
+	   * Compute a 4-isogeny of the Montgomery curve
+	   * sending (1,...) to infinity.
+	   */
+	  public iso4(Fp2Curve curve)
+	  {
+		  Fp2Field a, iAm2, iA, iB;
+		  
+		  a		 = curve.getA();
+		  isoAp2 = a.add(Fp2Field.SCALAR_TWO);						// isoAp2 = A + 2
+		  iAm2   = (Fp2Field.TWO.subtract(a)).invert();				// iAm2 = 1 / (2-A)
+		  iA     = ((a.add(Fp2Field.SCALAR_SIX)).multiply(iAm2)).multiply(Fp2Field.SCALAR_TWO).negate(); 
+		  															// iA = -2 (A+6) iAm2
+		  iB     = curve.getB().multiply(iAm2);						// iB = B iAm2
+		  
+		  isocurve = new Fp2Curve(iA,iB);
+	  }
+	  
+	  /**
+	   * Apply a 4-isogeny of Montgomery curves.
+	   */
+	  public Fp2Point apply(Fp2Point P)
+	  {
+		  Fp2Field x, y, z, Xout, Yout = null, Zout, z1, x1, zA2, FOURz;
+		  
+		  x     = P.getX();
+		  y     = P.getY();
+		  z     = P.getZ();
+		  z1    = x.multiply(z);									// z1 = x z
+		  x1    = (x.subtract(z)).square();							// x1 = (x - z)^2
+		  zA2   = z1.multiply(isoAp2);								// zA2 = z1 Ap2
+		  FOURz = z1.multiply(Fp2Field.SCALAR_FOUR);				// FOURz = 4 z1
+		  Xout  =(x1.add(zA2)).multiply(x1.add(FOURz));				// Xout = (x1+zA2)(x1+FOURz)
+		  
+		  if (y!=null)
+		  {
+			  Fp2Field B, C, D;
+			  
+			  B    = x.multiply(x1);								// B = x x1
+			  Xout = Xout.multiply(B);								// Xout *= B
+			  C    = x1.add(z1.subtract(z.square()).multiply(Fp2Field.SCALAR_TWO));
+			  														// C = x1 + 2(z1 -z^2)
+			  D    = x1.square().subtract(zA2.multiply(FOURz));		// D = x1^2 - zA2 FOURz
+			  Yout = y.multiply(C).multiply(D);						// Yout = y C D
+			  Zout = z.multiply(B.square()).multiply(Fp2Field.FOUR.subtract(isoAp2));	
+			  														// Z = z B^2 (4 - Ap2)
+		  }
+		  else
+			  Zout = x1.multiply(FOURz.subtract(isoAp2));			// Z = x1 (FOURz - zA2)
+		  
+		  return new Fp2Point(isocurve, Xout, Yout, Zout);
+		  
+	  }
+	  
+  }
+  
+}
