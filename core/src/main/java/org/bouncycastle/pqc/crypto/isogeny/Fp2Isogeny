@@ -30,14 +30,13 @@ public abstract class Fp2Isogeny
 		  x	  = P.getX();
 		  z   = P.getZ();
 		  P2  = P.twice();
-		  P2x = P2.getX().divide(P2.getZ());						// P2x = x([2]P) / z([2]P)
-		  r   = P2x.negate();										// r = -P2x
+		  P2x = P2.getX().divide(P2.getZ());
+		  r   = P2x.negate();
 		  
 		  a2 = P2x.multiply(Fp2Field.SCALAR_THREE).add(curve.getA());
-		  															// a2 = [3]P2x + A
-		  u  = z.divide(x.subtract(z.multiply(P2x)));				// u = z / (x - z P2x)
-		  iA = a2.multiply(u);										// iA = a2 u
-		  iB = curve.getB().multiply(u);							// iB = B u
+		  u  = z.divide(x.subtract(z.multiply(P2x)));
+		  iA = a2.multiply(u);
+		  iB = curve.getB().multiply(u);
 		  
 		  isocurve = new Fp2Curve(iA, iB);	  
 	  }
@@ -52,11 +51,11 @@ public abstract class Fp2Isogeny
 		  Zout = P.getZ();
 		  
 		  if (P.getY()!=null)
-			  Yout = P.getY().multiply(u);							// Y = y u
+			  Yout = P.getY().multiply(u);
 		  else 
 			  Yout = null;
 		  
-		  Xout = P.getX().add(r.multiply(P.getZ())).multiply(u);	// X = (x + r z) u
+		  Xout = P.getX().add(r.multiply(P.getZ())).multiply(u);
 
 		  return new Fp2Point(isocurve, Xout, Yout, Zout);
 		  
@@ -83,11 +82,10 @@ public abstract class Fp2Isogeny
 		  x    = P.getX();
 		  z    = P.getZ();
 		  xmz2 = x.subtract(z).square();
-		  isoA = x.multiply(z).divide(xmz2);						// isoA = x z / (x-z)^2
+		  isoA = x.multiply(z).divide(xmz2);
 		  
- 		  iB   = curve.getB().multiply(isoA);						// iB = B isoA
-		  iA   = curve.getA().add(Fp2Field.SCALAR_SIX).multiply(isoA);	
-		  															// iA = (A+6) isoA
+ 		  iB   = curve.getB().multiply(isoA);
+		  iA   = curve.getA().add(Fp2Field.SCALAR_SIX).multiply(isoA);
 		  isocurve = new Fp2Curve(iA, iB);
 	  }
 	  
@@ -108,16 +106,15 @@ public abstract class Fp2Isogeny
 		  {
 			  Fp2Field X2;
 			  
-			  retX = x.multiply(xmz2);								// ... retX = x isoA (x - z)^2
-			  X2   = x.square();									// X2 = x^2
+			  retX = x.multiply(xmz2);
+			  X2   = x.square();
 			  retY = isoA.multiply(y.multiply(X2.subtract(z.square())));
-			  														// retY = isoA y (x^2 - z^2)
-			  retZ = z.multiply(X2);								// retZ = z x^2
+			  retZ = z.multiply(X2);
 		  }
 		  else
-			  retZ = z.multiply(x);									// retZ = z x
+			  retZ = z.multiply(x);
 		  
-		  retX = retX.multiply(isoA);								// retX = isoA (x - z)^2
+		  retX = retX.multiply(isoA);
 	 
 		  return new Fp2Point(isocurve, retX, retY, retZ);
 	  }
@@ -141,14 +138,12 @@ public abstract class Fp2Isogeny
 	  {
 		  Fp2Field AmSIXp, iA, iB;
 		  
-		  isop  = P.getX().divide(P.getZ());						// p
-		  isop2 = isop.square();									// p^2
+		  isop  = P.getX().divide(P.getZ());
+		  isop2 = isop.square();
 		  
- 		  AmSIXp = curve.getA().subtract(isop.multiply(Fp2Field.SCALAR_SIX));			
- 		  															// (-6p + A)
-		  iA     = AmSIXp.multiply(isop).add(Fp2Field.SCALAR_SIX).multiply(isop); 	
-		  															// iA = ((-6p + A)p + 6)p
-		  iB     = curve.getB().multiply(isop2);					// iB = B p^2
+ 		  AmSIXp = curve.getA().subtract(isop.multiply(Fp2Field.SCALAR_SIX));
+		  iA     = AmSIXp.multiply(isop).add(Fp2Field.SCALAR_SIX).multiply(isop);
+		  iB     = curve.getB().multiply(isop2);
 		  
 		  isocurve = new Fp2Curve(iA, iB);
 	  }
@@ -163,22 +158,22 @@ public abstract class Fp2Isogeny
 		  x    = P.getX();
 		  y    = P.getY();
 		  z    = P.getZ();
-		  h    = x.subtract(isop.multiply(z));						// h = x - p z
-		  rh   = x.multiply(isop).subtract(z);						// rh = x p - z
-		  Xout = x.multiply(rh.square());							// Xout = x (x p - z)^2
+		  h    = x.subtract(isop.multiply(z));
+		  rh   = x.multiply(isop).subtract(z);
+		  Xout = x.multiply(rh.square());
  		  
 		  if (y!=null)
 		  {
 			  Fp2Field temp;
-			  Xout = Xout.multiply(h);								// Xout *= h
+			  Xout = Xout.multiply(h);
 			  temp = x.multiply(z).multiply(Fp2Field.ONE.subtract(isop2));
 			  temp = temp.add(temp);
-			  temp = rh.multiply(rh.multiply(h).add(temp)); 		// (rh (rh h + 2xz(1-p^2)))
-			  Yout = y.multiply(temp);								// Y = y (rh (rh h + 2xz(1-p^2)))
-			  Zout = h.square().multiply(h).multiply(z);			// Z = h^2 h z
+			  temp = rh.multiply(rh.multiply(h).add(temp)); 
+			  Yout = y.multiply(temp);
+			  Zout = h.square().multiply(h).multiply(z);
 		  }
 		  else
-			  Zout = h.square().multiply(z);						// Z = h^2 z
+			  Zout = h.square().multiply(z);
 		  
 		  return new Fp2Point(isocurve, Xout, Yout, Zout);
 	  }
@@ -202,11 +197,10 @@ public abstract class Fp2Isogeny
 		  Fp2Field a, iAm2, iA, iB;
 		  
 		  a		 = curve.getA();
-		  isoAp2 = a.add(Fp2Field.SCALAR_TWO);						// isoAp2 = A + 2
-		  iAm2   = (Fp2Field.TWO.subtract(a)).invert();				// iAm2 = 1 / (2-A)
-		  iA     = ((a.add(Fp2Field.SCALAR_SIX)).multiply(iAm2)).multiply(Fp2Field.SCALAR_TWO).negate(); 
-		  															// iA = -2 (A+6) iAm2
-		  iB     = curve.getB().multiply(iAm2);						// iB = B iAm2
+		  isoAp2 = a.add(Fp2Field.SCALAR_TWO);	
+		  iAm2   = (Fp2Field.TWO.subtract(a)).invert();
+		  iA     = ((a.add(Fp2Field.SCALAR_SIX)).multiply(iAm2)).multiply(Fp2Field.SCALAR_TWO).negate();
+		  iB     = curve.getB().multiply(iAm2);
 		  
 		  isocurve = new Fp2Curve(iA,iB);
 	  }
@@ -221,27 +215,25 @@ public abstract class Fp2Isogeny
 		  x     = P.getX();
 		  y     = P.getY();
 		  z     = P.getZ();
-		  z1    = x.multiply(z);									// z1 = x z
-		  x1    = (x.subtract(z)).square();							// x1 = (x - z)^2
-		  zA2   = z1.multiply(isoAp2);								// zA2 = z1 Ap2
-		  FOURz = z1.multiply(Fp2Field.SCALAR_FOUR);				// FOURz = 4 z1
-		  Xout  =(x1.add(zA2)).multiply(x1.add(FOURz));				// Xout = (x1+zA2)(x1+FOURz)
+		  z1    = x.multiply(z);
+		  x1    = (x.subtract(z)).square();
+		  zA2   = z1.multiply(isoAp2);
+		  FOURz = z1.multiply(Fp2Field.SCALAR_FOUR);
+		  Xout  =(x1.add(zA2)).multiply(x1.add(FOURz));
 		  
 		  if (y!=null)
 		  {
 			  Fp2Field B, C, D;
 			  
-			  B    = x.multiply(x1);								// B = x x1
-			  Xout = Xout.multiply(B);								// Xout *= B
+			  B    = x.multiply(x1);
+			  Xout = Xout.multiply(B);
 			  C    = x1.add(z1.subtract(z.square()).multiply(Fp2Field.SCALAR_TWO));
-			  														// C = x1 + 2(z1 -z^2)
-			  D    = x1.square().subtract(zA2.multiply(FOURz));		// D = x1^2 - zA2 FOURz
-			  Yout = y.multiply(C).multiply(D);						// Yout = y C D
-			  Zout = z.multiply(B.square()).multiply(Fp2Field.FOUR.subtract(isoAp2));	
-			  														// Z = z B^2 (4 - Ap2)
+			  D    = x1.square().subtract(zA2.multiply(FOURz));
+			  Yout = y.multiply(C).multiply(D);
+			  Zout = z.multiply(B.square()).multiply(Fp2Field.FOUR.subtract(isoAp2));
 		  }
 		  else
-			  Zout = x1.multiply(FOURz.subtract(isoAp2));			// Z = x1 (FOURz - zA2)
+			  Zout = x1.multiply(FOURz.subtract(isoAp2));
 		  
 		  return new Fp2Point(isocurve, Xout, Yout, Zout);
 		  
